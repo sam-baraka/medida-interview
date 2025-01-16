@@ -85,14 +85,21 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
 
-  const getMousePos = (e: React.MouseEvent<HTMLCanvasElement>): Point => {
+  const getMousePos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    
+    // Calculate position considering any scaling
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
     };
   };
 
@@ -105,14 +112,28 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
     };
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (readonly || history.present.length >= 2) return;
+    if ('touches' in e) e.preventDefault(); // Prevent scrolling on touch
 
     setIsDrawing(true);
     setStartPoint(getMousePos(e));
   };
 
-  const handleMouseUp = () => {
+  const handleMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || readonly || history.present.length >= 2) return;
+    if ('touches' in e) e.preventDefault(); // Prevent scrolling on touch
+
+    const pos = getMousePos(e);
+    setCurrentPoint(pos);
+    if (startPoint) {
+      const newRect = createRect(startPoint, pos);
+      setCurrentRect(newRect);
+      drawCanvas([...history.present, newRect]);
+    }
+  };
+
+  const handleEnd = () => {
     if (!isDrawing || !currentRect || !startPoint) return;
 
     setIsDrawing(false);
@@ -128,6 +149,14 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
     
     drawCanvas(newRectangles);
     onRectangleDrawn(newRectangles[newRectangles.length - 1]);
+  };
+
+  const handleCancel = () => {
+    setIsDrawing(false);
+    setCurrentRect(null);
+    setStartPoint(null);
+    setCurrentPoint(null);
+    drawCanvas(history.present);
   };
 
   const drawCanvas = useCallback((rectangles: Rectangle[]) => {
@@ -253,25 +282,15 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
           width={800}
           height={600}
           data-testid="drawing-canvas"
-          className="w-full h-full border-2 border-gray-200 rounded-lg bg-white cursor-crosshair shadow-inner"
-          onMouseDown={handleMouseDown}
-          onMouseMove={(e: React.MouseEvent<HTMLCanvasElement>) => {
-            if (!isDrawing || readonly || history.present.length >= 2) return;
-            const pos = getMousePos(e);
-            setCurrentPoint(pos);
-            if (startPoint) {
-              const newRect = createRect(startPoint, pos);
-              setCurrentRect(newRect);
-              drawCanvas([...history.present, newRect]);
-            }
-          }}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={() => {
-            setIsDrawing(false);
-            setCurrentRect(null);
-            setStartPoint(null);
-            setCurrentPoint(null);
-          }}
+          className="w-full h-full border-2 border-gray-200 rounded-lg bg-white cursor-crosshair shadow-inner touch-none"
+          onMouseDown={handleStart}
+          onMouseMove={handleMove}
+          onMouseUp={handleEnd}
+          onMouseLeave={handleCancel}
+          onTouchStart={handleStart}
+          onTouchMove={handleMove}
+          onTouchEnd={handleEnd}
+          onTouchCancel={handleCancel}
         />
         {history.present.length < 2 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
@@ -293,18 +312,46 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
             <button
               onClick={undo}
               disabled={history.past.length === 0}
-              className="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors border border-indigo-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors border border-indigo-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="undo-button"
+              title="Undo"
             >
-              Undo
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 14L4 9l5-5" />
+                <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
+              </svg>
             </button>
             <button
               onClick={redo}
               disabled={history.future.length === 0}
-              className="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors border border-indigo-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors border border-indigo-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="redo-button"
+              title="Redo"
             >
-              Redo
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M15 14l5-5-5-5" />
+                <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13" />
+              </svg>
             </button>
           </div>
         </>
