@@ -1,30 +1,49 @@
-# Interactive Measurement Dashboard
+# Interactive Measurement Dashboard with React and TypeScript
 
-# Medida Senior Frontend Developer Submission
+## Medida Senior Frontend Developer Submission
 **By**: Samuel Baraka Bushuru  
 **Email**: samuel.baraka1981@gmail.com
 
-An application that allows users to draw and measure rectangles on a canvas, built with React, TypeScript, and Tailwind CSS.
+A modern React application built with TypeScript that allows users to draw and measure rectangles on a canvas. The application leverages React's powerful component system and TypeScript's type safety to provide a robust and maintainable codebase.
+
+ **[View Live Application](https://medida-interview.web.app/)**
 
 ## Features
 
-- Draw two rectangles by clicking and dragging on the canvas
-- Real-time calculation of rectangle dimensions
-- Calculate Euclidean distance between rectangle centers
-- Save measurements to local storage
-- View saved measurements in a sortable table
-- Click table rows to re-render rectangles in their original positions
-- Responsive design for both desktop and mobile
-- Delete saved measurements
+- Interactive canvas drawing powered by React's event system
+- Type-safe rectangle measurements with TypeScript
+- Real-time calculations with React state management
+- Strongly-typed data persistence with TypeScript interfaces
+- React-powered sortable measurement table
+- TypeScript-enforced data validation and error handling
+- Responsive React components for all screen sizes
+- Type-safe event handling for drawing operations
 
-## Technical Stack -> React
+## Technical Stack
 
-- **Framework**: [Next.js](https://nextjs.org)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **State Management**: React Hooks
-- **Storage**: Local Storage API
-- **Drawing**: HTML Canvas API
+- **Framework**: [Next.js](https://nextjs.org) with React 18
+- **Language**: TypeScript 5.0+ for full type safety
+- **Styling**: Tailwind CSS with type-safe classes
+- **State Management**: React Hooks with TypeScript generics
+- **Storage**: Local Storage API with typed schemas
+- **Drawing**: HTML Canvas API with TypeScript event handling
+- **Testing**: Jest and React Testing Library with TypeScript
+- **Deployment**: Firebase Hosting with CI/CD Pipeline
+
+## Project Structure
+
+```typescript
+app/
+├── components/         # React components with TypeScript
+│   ├── Canvas.tsx     # Canvas component with typed props
+│   └── MeasurementTable.tsx  # Table with TypeScript generics
+├── types/             # TypeScript type definitions
+│   └── index.ts       # Shared interfaces and types
+├── utils/            # Typed utility functions
+│   ├── calculations.ts  # Type-safe calculations
+│   └── storage.ts      # Typed storage operations
+└── page.tsx          # Main React component
+```
 
 ## Getting Started
 
@@ -46,88 +65,44 @@ npm run dev
 
 4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Project Structure
-
-```
-app/
-├── components/         # React components
-│   ├── Canvas.tsx     # Canvas drawing component
-│   └── MeasurementTable.tsx  # Saved measurements table
-├── types/             # TypeScript type definitions
-│   └── index.ts
-├── utils/            # Utility functions
-│   ├── calculations.ts  # Distance and dimension calculations
-│   └── storage.ts      # Local storage operations
-└── page.tsx          # Main application page
-```
-
-## Implementation Details
-
-- Canvas drawing is implemented using mouse events (mousedown, mousemove, mouseup)
-- Rectangle dimensions are calculated in real-time during drawing
-- Distance between rectangles is calculated using the Euclidean distance formula
-- Data persistence is handled through the browser's Local Storage API
-- The UI is fully responsive and adapts to different screen sizes
-- Table supports sorting by timestamp and distance
-
-## Assumptions and Limitations
-
-### Assumptions
-- The application runs in a modern web browser with JavaScript enabled
-- Users have Node.js (v16 or higher) installed on their system
-- Users understand basic geometric concepts (rectangles, distances)
-- Screen resolution is sufficient to display the canvas and measurements accurately
-
-### Limitations
-- Maximum of two rectangles can be drawn at a time
-- Rectangles must be drawn using click-and-drag
-- Local storage is used for data persistence (data is browser-specific)
-- Canvas size is fixed at 800x600 pixels
-- All measurements are in pixels
-
-## Steps to Run the Application
-
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/yourusername/medida-interview.git
-   cd medida-interview
-   ```
-
-2. **Install Dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Run Development Server**
-   ```bash
-   npm run dev
-   ```
-   The application will be available at `http://localhost:3000`
-
-4. **Run Tests**
-   ```bash
-   npm test
-   ```
-
 ## Development Commands
 
 - `npm run dev` - Start development server
 - `npm run build` - Build production version
 - `npm start` - Start production server
-- `npm test` - Run test suite
-- `npm run lint` - Run linter
+- `npm test` - Run TypeScript-aware tests
+- `npm run lint` - Run ESLint with TypeScript support
 
-## Future Improvements
+## Implementation Details
 
-- Add unit tests using Jest and React Testing Library
-- Implement undo/redo functionality
-- Add more sorting and filtering options for the table
-- Support for different measurement units
-- Export/import functionality for saved measurements
-- Add touch support for mobile devices
+### Technical Implementation
+- React components built with TypeScript for type safety
+- Canvas drawing implemented with typed mouse event handlers
+- Real-time calculations using React's state management
+- Type-safe data persistence with TypeScript interfaces
+- Responsive UI built with React components
+- Strongly-typed sorting functionality in the table
 
-## Deploy on Vercel
+### Assumptions
+- Modern web browser with React 18+ support
+- Node.js (v16 or higher) for development
+- TypeScript-aware IDE for development
+- Adequate screen resolution for canvas operations
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Limitations
+- Maximum of two rectangles per canvas (type-enforced)
+- Mouse-based drawing interface
+- Browser local storage for data persistence
+- Fixed canvas dimensions (800x600 pixels)
+- Pixel-based measurements
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+The application is automatically deployed to Firebase Hosting through a CI/CD pipeline that runs on every push to the main branch. The pipeline:
+
+1. Type-checks and tests the entire codebase
+2. Builds the production version with TypeScript compilation
+3. Deploys to Firebase if all checks pass
+
+ **Live Application**: [https://medida-interview.web.app/](https://medida-interview.web.app/)
+
