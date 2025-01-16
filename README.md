@@ -30,7 +30,7 @@ An application that allows users to draw and measure rectangles on a canvas, bui
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/sam-baraka/medida-interview
 cd medida-interview
 ```
 
