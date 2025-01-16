@@ -65,11 +65,6 @@ export default function MeasurementTable({
     });
   }, [records, sortField, sortOrder, searchQuery]);
 
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return '↕️';
-    return sortOrder === 'asc' ? '↑' : '↓';
-  };
-
   if (records.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
@@ -112,18 +107,58 @@ export default function MeasurementTable({
                 Rectangles
               </th>
               <th
-                className="w-1/6 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="w-1/6 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group"
                 onClick={() => handleSort('distance')}
                 data-testid="distance-header"
+                title="Click to sort by distance"
               >
-                Distance {getSortIcon('distance')}
+                <div className="flex items-center gap-1">
+                  Distance
+                  <div className="inline-flex items-center transition-colors">
+                    {sortField === 'distance' ? (
+                      sortOrder === 'asc' ? (
+                        <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      )
+                    ) : (
+                      <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
               </th>
               <th
-                className="w-1/3 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="w-1/3 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group"
                 onClick={() => handleSort('timestamp')}
                 data-testid="timestamp-header"
+                title="Click to sort by time"
               >
-                Time {getSortIcon('timestamp')}
+                <div className="flex items-center gap-1">
+                  Time
+                  <div className="inline-flex items-center transition-colors">
+                    {sortField === 'timestamp' ? (
+                      sortOrder === 'asc' ? (
+                        <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      )
+                    ) : (
+                      <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
               </th>
               <th className="w-1/6 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Delete
@@ -150,7 +185,7 @@ export default function MeasurementTable({
                 </td>
                 <td className="px-4 py-4">
                   <span className="text-sm text-gray-900">
-                    {formatDistance(record.distance)}px
+                    {formatDistance(record.distance)}
                   </span>
                 </td>
                 <td className="px-4 py-4">

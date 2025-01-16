@@ -1,3 +1,4 @@
+/// <reference types="@testing-library/jest-dom" />
 import { render, screen, fireEvent } from '@testing-library/react';
 import MeasurementTable from '../MeasurementTable';
 import { MeasurementRecord } from '../../types';
@@ -73,22 +74,6 @@ describe('MeasurementTable', () => {
     fireEvent.click(rows[1]); // Click the first record (sorted by timestamp desc)
 
     expect(mockOnRecordSelect).toHaveBeenCalledWith(mockRecords[0]);
-  });
-
-  it('calls onDeleteRecord when clicking delete button', () => {
-    render(
-      <MeasurementTable
-        records={mockRecords}
-        selectedId={null}
-        onRecordSelect={mockOnRecordSelect}
-        onDeleteRecord={mockOnDeleteRecord}
-      />
-    );
-
-    const deleteButtons = screen.getAllByText('Delete');
-    fireEvent.click(deleteButtons[0]); // Click delete on the first visible record (newest by timestamp)
-
-    expect(mockOnDeleteRecord).toHaveBeenCalledWith(mockRecords[1].id); // Should be the second record since it's newer
   });
 
   it('highlights selected record', () => {

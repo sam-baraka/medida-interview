@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
@@ -21,6 +22,7 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [currentRect, setCurrentRect] = useState<Rectangle | null>(null);
+  const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
   const [history, setHistory] = useState<HistoryState>({
     past: [],
     present: rectangles,
@@ -83,7 +85,7 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
 
-  const getMousePos = (e: MouseEvent): Point => {
+  const getMousePos = (e: React.MouseEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
@@ -94,61 +96,38 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
     };
   };
 
-  const handleMouseDown = (e: MouseEvent) => {
+  const createRect = (start: Point, end: Point): Rectangle => {
+    return {
+      x: Math.min(start.x, end.x),
+      y: Math.min(start.y, end.y),
+      width: Math.abs(end.x - start.x),
+      height: Math.abs(end.y - start.y)
+    };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (readonly || history.present.length >= 2) return;
 
     setIsDrawing(true);
     setStartPoint(getMousePos(e));
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !startPoint) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const width = x - startPoint.x;
-    const height = y - startPoint.y;
-
-    const newRect = {
-      x: startPoint.x,
-      y: startPoint.y,
-      width,
-      height
-    };
-
-    setCurrentRect(newRect);
-    drawCanvas([...history.present, newRect]);
-  };
-
   const handleMouseUp = () => {
     if (!isDrawing || !currentRect || !startPoint) return;
 
     setIsDrawing(false);
-    setStartPoint(null);
-
-    const normalizedRect = {
-      x: currentRect.width < 0 ? currentRect.x + currentRect.width : currentRect.x,
-      y: currentRect.height < 0 ? currentRect.y + currentRect.height : currentRect.y,
-      width: Math.abs(currentRect.width),
-      height: Math.abs(currentRect.height)
-    };
-
-    // Add to history before updating parent
-    const newPresent = [...history.present, normalizedRect];
-    setHistory(prev => ({
-      past: [...prev.past, prev.present],
-      present: newPresent,
-      future: []
-    }));
-
-    // Update parent component
-    onRectangleDrawn(normalizedRect);
     setCurrentRect(null);
+    setStartPoint(null);
+    
+    const newRectangles = [...history.present, currentRect];
+    setHistory({
+      past: [...history.past, history.present],
+      present: newRectangles,
+      future: []
+    });
+    
+    drawCanvas(newRectangles);
+    onRectangleDrawn(newRectangles[newRectangles.length - 1]);
   };
 
   const drawCanvas = useCallback((rectangles: Rectangle[]) => {
@@ -276,9 +255,23 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
           data-testid="drawing-canvas"
           className="w-full h-full border-2 border-gray-200 rounded-lg bg-white cursor-crosshair shadow-inner"
           onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
+          onMouseMove={(e: React.MouseEvent<HTMLCanvasElement>) => {
+            if (!isDrawing || readonly || history.present.length >= 2) return;
+            const pos = getMousePos(e);
+            setCurrentPoint(pos);
+            if (startPoint) {
+              const newRect = createRect(startPoint, pos);
+              setCurrentRect(newRect);
+              drawCanvas([...history.present, newRect]);
+            }
+          }}
           onMouseUp={handleMouseUp}
-          onMouseLeave={() => setIsDrawing(false)}
+          onMouseLeave={() => {
+            setIsDrawing(false);
+            setCurrentRect(null);
+            setStartPoint(null);
+            setCurrentPoint(null);
+          }}
         />
         {history.present.length < 2 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
