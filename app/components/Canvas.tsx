@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState, MouseEvent } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { Rectangle, Point } from '../types';
 
 interface CanvasProps {
@@ -10,22 +10,158 @@ interface CanvasProps {
   readonly?: boolean;
 }
 
+interface HistoryState {
+  past: Rectangle[][];
+  present: Rectangle[];
+  future: Rectangle[][];
+}
+
 export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly = false }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
+  const [currentRect, setCurrentRect] = useState<Rectangle | null>(null);
+  const [history, setHistory] = useState<HistoryState>({
+    past: [],
+    present: rectangles,
+    future: []
+  });
 
   useEffect(() => {
+    setHistory(prev => ({
+      ...prev,
+      present: rectangles
+    }));
+  }, [rectangles]);
+
+  const undo = useCallback(() => {
+    if (history.past.length === 0) return;
+    
+    const newPast = history.past.slice(0, -1);
+    const newPresent = history.past[history.past.length - 1];
+    const newFuture = [history.present, ...history.future];
+    
+    setHistory({
+      past: newPast,
+      present: newPresent,
+      future: newFuture
+    });
+    
+    // Update parent component
+    onRectangleDrawn(newPresent[newPresent.length - 1]);
+  }, [history, onRectangleDrawn]);
+
+  const redo = useCallback(() => {
+    if (history.future.length === 0) return;
+    
+    const newFuture = history.future.slice(1);
+    const newPresent = history.future[0];
+    const newPast = [...history.past, history.present];
+    
+    setHistory({
+      past: newPast,
+      present: newPresent,
+      future: newFuture
+    });
+    
+    // Update parent component
+    onRectangleDrawn(newPresent[newPresent.length - 1]);
+  }, [history, onRectangleDrawn]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'z' && (e.metaKey || e.ctrlKey)) {
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
+
+  const getMousePos = (e: MouseEvent): Point => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  };
+
+  const handleMouseDown = (e: MouseEvent) => {
+    if (readonly || history.present.length >= 2) return;
+
+    setIsDrawing(true);
+    setStartPoint(getMousePos(e));
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !startPoint) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const width = x - startPoint.x;
+    const height = y - startPoint.y;
+
+    const newRect = {
+      x: startPoint.x,
+      y: startPoint.y,
+      width,
+      height
+    };
+
+    setCurrentRect(newRect);
+    drawCanvas([...history.present, newRect]);
+  };
+
+  const handleMouseUp = () => {
+    if (!isDrawing || !currentRect || !startPoint) return;
+
+    setIsDrawing(false);
+    setStartPoint(null);
+
+    const normalizedRect = {
+      x: currentRect.width < 0 ? currentRect.x + currentRect.width : currentRect.x,
+      y: currentRect.height < 0 ? currentRect.y + currentRect.height : currentRect.y,
+      width: Math.abs(currentRect.width),
+      height: Math.abs(currentRect.height)
+    };
+
+    // Add to history before updating parent
+    const newPresent = [...history.present, normalizedRect];
+    setHistory(prev => ({
+      past: [...prev.past, prev.present],
+      present: newPresent,
+      future: []
+    }));
+
+    // Update parent component
+    onRectangleDrawn(normalizedRect);
+    setCurrentRect(null);
+  };
+
+  const drawCanvas = useCallback((rectangles: Rectangle[]) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set up canvas
+    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Add grid pattern
+    // Draw grid
     const gridSize = 20;
     ctx.strokeStyle = '#f0f0f0';
     ctx.lineWidth = 1;
@@ -44,11 +180,10 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
       ctx.stroke();
     }
 
-    // Draw existing rectangles with gradient fill
+    // Draw rectangles
     rectangles.forEach((rect, index) => {
       ctx.save();
       
-      // Create gradient
       const gradient = ctx.createLinearGradient(
         rect.x, rect.y, 
         rect.x + rect.width, rect.y + rect.height
@@ -115,118 +250,20 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
       ctx.stroke();
       ctx.setLineDash([]);
     }
-  }, [rectangles]);
+  }, []);
 
-  const getMousePos = (e: MouseEvent): Point => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
+  // Update canvas when history changes
+  useEffect(() => {
+    drawCanvas(history.present);
+  }, [history.present, drawCanvas]);
 
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-  };
-
-  const handleMouseDown = (e: MouseEvent) => {
-    if (readonly || rectangles.length >= 2) return;
-    
-    setIsDrawing(true);
-    setStartPoint(getMousePos(e));
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDrawing || !startPoint || !canvasRef.current) return;
-
-    const ctx = canvasRef.current.getContext('2d');
-    if (!ctx) return;
-
-    const currentPoint = getMousePos(e);
-
-    // Redraw canvas
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    
-    // Redraw grid
-    const gridSize = 20;
-    ctx.strokeStyle = '#f0f0f0';
-    ctx.lineWidth = 1;
-    
-    for (let x = 0; x <= canvasRef.current.width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvasRef.current.height);
-      ctx.stroke();
-    }
-    
-    for (let y = 0; y <= canvasRef.current.height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvasRef.current.width, y);
-      ctx.stroke();
-    }
-
-    // Redraw existing rectangles
-    rectangles.forEach((rect, index) => {
-      ctx.save();
-      const gradient = ctx.createLinearGradient(
-        rect.x, rect.y, 
-        rect.x + rect.width, rect.y + rect.height
-      );
-      
-      if (index === 0) {
-        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.1)');
-        gradient.addColorStop(1, 'rgba(79, 70, 229, 0.2)');
-        ctx.strokeStyle = '#4F46E5';
-      } else {
-        gradient.addColorStop(0, 'rgba(147, 51, 234, 0.1)');
-        gradient.addColorStop(1, 'rgba(147, 51, 234, 0.2)');
-        ctx.strokeStyle = '#9333EA';
-      }
-      
-      ctx.fillStyle = gradient;
-      ctx.lineWidth = 2;
-      
-      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-      ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-      
-      ctx.restore();
-    });
-
-    // Draw current rectangle
-    const width = currentPoint.x - startPoint.x;
-    const height = currentPoint.y - startPoint.y;
-    
-    ctx.save();
-    const gradient = ctx.createLinearGradient(
-      startPoint.x, startPoint.y,
-      startPoint.x + width, startPoint.y + height
-    );
-    gradient.addColorStop(0, 'rgba(79, 70, 229, 0.1)');
-    gradient.addColorStop(1, 'rgba(79, 70, 229, 0.2)');
-    
-    ctx.fillStyle = gradient;
-    ctx.strokeStyle = '#4F46E5';
-    ctx.lineWidth = 2;
-    
-    ctx.fillRect(startPoint.x, startPoint.y, width, height);
-    ctx.strokeRect(startPoint.x, startPoint.y, width, height);
-    ctx.restore();
-  };
-
-  const handleMouseUp = (e: MouseEvent) => {
-    if (!isDrawing || !startPoint) return;
-
-    const endPoint = getMousePos(e);
-    const newRect: Rectangle = {
-      x: Math.min(startPoint.x, endPoint.x),
-      y: Math.min(startPoint.y, endPoint.y),
-      width: Math.abs(endPoint.x - startPoint.x),
-      height: Math.abs(endPoint.y - startPoint.y)
-    };
-
-    onRectangleDrawn(newRect);
-    setIsDrawing(false);
-    setStartPoint(null);
+  const handleClear = () => {
+    setHistory(prev => ({
+      past: [...prev.past, prev.present],
+      present: [],
+      future: []
+    }));
+    onClear();
   };
 
   return (
@@ -243,7 +280,7 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
           onMouseUp={handleMouseUp}
           onMouseLeave={() => setIsDrawing(false)}
         />
-        {!readonly && rectangles.length < 2 && (
+        {history.present.length < 2 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
             <p className="text-gray-400 text-sm bg-white/80 px-4 py-2 rounded-full">
               Click and drag to draw a rectangle
@@ -252,12 +289,32 @@ export default function Canvas({ rectangles, onRectangleDrawn, onClear, readonly
         )}
       </div>
       {!readonly && (
-        <button
-          onClick={onClear}
-          className="absolute top-4 right-4 px-4 py-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors border border-red-200 shadow-sm"
-        >
-          Clear Canvas
-        </button>
+        <>
+          <button
+            onClick={handleClear}
+            className="absolute top-4 right-4 px-4 py-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors border border-red-200 shadow-sm"
+          >
+            Clear Canvas
+          </button>
+          <div className="absolute top-4 left-4 space-x-2">
+            <button
+              onClick={undo}
+              disabled={history.past.length === 0}
+              className="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors border border-indigo-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="undo-button"
+            >
+              Undo
+            </button>
+            <button
+              onClick={redo}
+              disabled={history.future.length === 0}
+              className="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors border border-indigo-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="redo-button"
+            >
+              Redo
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
