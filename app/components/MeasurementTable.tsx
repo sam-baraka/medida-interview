@@ -65,6 +65,8 @@ export default function MeasurementTable({
     });
   }, [records, sortField, sortOrder, searchQuery]);
 
+  const formatDimension = (value: number) => value.toFixed(2);
+
   if (records.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
@@ -178,10 +180,10 @@ export default function MeasurementTable({
                 >
                   <td className="px-4 py-4 sticky left-0 bg-white">
                     <div className="text-sm text-gray-900">
-                      R1: {record.rectangles[0].width}×{record.rectangles[0].height}
+                      R1: {formatDimension(record.rectangles[0].width)}×{formatDimension(record.rectangles[0].height)}
                     </div>
                     <div className="text-sm text-gray-900">
-                      R2: {record.rectangles[1]?.width}×{record.rectangles[1]?.height}
+                      R2: {record.rectangles[1] ? `${formatDimension(record.rectangles[1].width)}×${formatDimension(record.rectangles[1].height)}` : ''}
                     </div>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
