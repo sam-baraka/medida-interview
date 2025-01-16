@@ -106,13 +106,3 @@ The application is automatically deployed to Firebase Hosting through a CI/CD pi
 
  **Live Application**: [https://medida-interview.web.app/](https://medida-interview.web.app/)
 
-## Future Improvements
-
-- Implement type-safe undo/redo functionality
-- Add advanced TypeScript-powered filtering options
-- Support for configurable measurement units
-- Type-safe data import/export functionality
-- Touch event support with TypeScript definitions
-- Enhanced accessibility with ARIA types
-- Support for additional geometric shapes
-- Real-time collaboration with typed WebSocket events
